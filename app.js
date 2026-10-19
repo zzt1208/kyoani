@@ -1,0 +1,1045 @@
+/* Application logic. Data lives in data.js; images live in assets/. */
+"use strict";
+
+/* =========================================================
+   评分来源：Bangumi 番组计划（截至 2026 年 10 月，非实时）
+   作品海报：各作品公开资料 / Bangumi；角色画像：AniList / Bangumi
+   ========================================================= */
+
+const imageSrc = (url) => IMAGE_FILES[url] || url;
+
+/* =========================================================
+   APP LOGIC — 渲染、筛选、详情弹窗、导航与动效
+   ========================================================= */
+document.documentElement.classList.add("js");
+
+const $ = (selector, scope = document) => scope.querySelector(selector);
+const $$ = (selector, scope = document) => Array.from(scope.querySelectorAll(selector));
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+const isReduced = () => reduceMotion.matches;
+const workById = new Map(works.map((work) => [work.id, work]));
+const state = { filter: "all", query: "", sort: "date", direction: "desc", page: 1, pageSize: 20 };
+
+const escapeXML = (value) => String(value ?? "")
+  .replaceAll("&", "&amp;")
+  .replaceAll("<", "&lt;")
+  .replaceAll(">", "&gt;")
+  .replaceAll('"', "&quot;")
+  .replaceAll("'", "&apos;");
+
+const normalizeText = (value) => String(value || "")
+  .normalize("NFKC")
+  .toLowerCase()
+  .replace(/[\s\u3000・·\-—–~～]/g, "");
+
+works.forEach((work) => {
+  work.characters.forEach((character) => {
+    character.workId = work.id;
+  });
+  work.searchBlob = normalizeText([
+    work.title, work.jp, work.year, work.typeLabel,
+    work.director, work.writer, work.tags.join(" "),
+    work.short, work.detail,
+    work.characters.map((character) => `${character.cn} ${character.jp}`).join(" ")
+  ].join(" "));
+});
+
+const timelineTrack = $("#timelineTrack");
+const worksGrid = $("#worksGrid");
+const worksPagination = $("#worksPagination");
+const paginationSummary = $("#paginationSummary");
+const pageNumbers = $("#pageNumbers");
+const pagePrev = $("#pagePrev");
+const pageNext = $("#pageNext");
+const paginationControls = $("#paginationControls");
+const pageSizeSelect = $("#pageSize");
+const sortDir = $("#sortDir");
+const sortDirIcon = $("#sortDirIcon");
+const sortDirLabel = $("#sortDirLabel");
+const emptyState = $("#emptyState");
+const worksCount = $("#worksCount");
+const workSearch = $("#workSearch");
+const characterGrid = $("#characterGrid");
+const characterSearch = $("#characterSearch");
+const characterWorkFilter = $("#characterWorkFilter");
+const characterCount = $("#characterCount");
+const characterTotal = $("#characterTotal");
+const characterEmpty = $("#characterEmpty");
+const characterClear = $("#characterClear");
+const characterPagination = $("#characterPagination");
+const characterPaginationSummary = $("#characterPaginationSummary");
+const characterPageNumbers = $("#characterPageNumbers");
+const characterPrev = $("#characterPrev");
+const characterNext = $("#characterNext");
+const characterPageSizeSelect = $("#characterPageSize");
+const heroArtSlides = $$(".hero-art");
+const heroCaption = $("#heroCaption");
+
+/* ---------- 图片加载失败的回退：不出现破图 ---------- */
+window.__imageFallback = function (img) {
+  const fallback = img.dataset.fallbackSrc;
+  if (fallback && img.dataset.fallbackTried !== "1") {
+    img.dataset.fallbackTried = "1";
+    img.src = fallback;
+    return;
+  }
+  const frame = img.closest("[data-art-frame], .avatar, .character-card__portrait, .modal-hero");
+  if (frame) frame.classList.add("is-fallback");
+  img.style.display = "none";
+  img.setAttribute("alt", "");
+};
+
+function coverMarkup(work, { eager = false } = {}) {
+  return `<img src="${escapeXML(imageSrc(work.cover))}" data-fallback-src="${escapeXML(work.coverFallback)}"
+    alt="《${escapeXML(work.title)}》作品海报，来自公开资料"
+    width="800" height="1200" loading="${eager ? "eager" : "lazy"}" decoding="async"
+    referrerpolicy="no-referrer" onerror="window.__imageFallback(this)">`;
+}
+
+function coverFallback(work) {
+  return `<div class="art-fallback" aria-hidden="true">
+    <span class="art-fallback__jp">${escapeXML(work.jp)}</span>
+    <span class="art-fallback__label">IMAGE PREVIEW · ${escapeXML(work.year)}</span>
+  </div>`;
+}
+
+function avatarMarkup(work, character, { decorative = true } = {}) {
+  const alt = decorative ? "" : `${character.cn}，来自《${work.title}》的角色画像`;
+  return `<span class="avatar" aria-hidden="${decorative ? "true" : "false"}">
+    <img src="${escapeXML(imageSrc(character.image))}" alt="${escapeXML(alt)}" width="400" height="500"
+      loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="window.__imageFallback(this)">
+    <span class="avatar__fallback" aria-hidden="true">${escapeXML(Array.from(character.cn)[0] || "京")}</span>
+  </span>`;
+}
+
+function castMarkup(work) {
+  const all = work.characters;
+  const cast = all.slice(0, 3);
+  if (!cast.length) return "";
+  const names = all.map((character) => character.cn).join("、");
+  const preview = all.slice(0, 2).map((character) => character.cn).join(" · ");
+  return `<div class="cast-row" title="主要角色：${escapeXML(names)}">
+    <div class="avatar-stack" role="img" aria-label="主要角色共 ${all.length} 人：${escapeXML(names)}">
+      ${cast.map((character) => avatarMarkup(work, character)).join("")}
+    </div>
+    ${all.length > 3 ? `<span class="cast-more" aria-hidden="true">+${all.length - 3}</span>` : ""}
+    <span class="cast-label">主要角色 · ${all.length} 人<span>${escapeXML(preview)}${all.length > 2 ? " …" : ""}</span></span>
+  </div>`;
+}
+
+function ratingMarkup(work) {
+  if (work.score === null || work.score === undefined) {
+    return `<span class="rating rating--empty" aria-label="${RATING.platform} 暂无公开评分">
+      <span class="rating__line"><span class="plat">${RATING.platform}</span><strong>—</strong><span class="denom">/ 10</span></span>
+      <span class="rating__meta">统计 ${RATING.shortTime} · 暂无公开评分</span>
+    </span>`;
+  }
+  return `<span class="rating" aria-label="${RATING.platform} 参考评分 ${Number(work.score).toFixed(1)} / 10，统计时间 ${RATING.time}">
+    <span class="rating__line"><span class="plat">${RATING.platform}</span><strong>${Number(work.score).toFixed(1)}</strong><span class="denom">/ 10</span></span>
+    <span class="rating__meta">统计 ${RATING.shortTime} · 参考</span>
+  </span>`;
+}
+
+function typePill(work) {
+  return `<span class="type-pill">${escapeXML(work.typeLabel)}</span>`;
+}
+
+function tagsMarkup(work) {
+  return work.tags.map((tag) => `<span class="tag">${escapeXML(tag)}</span>`).join("");
+}
+
+function workMeta(work) {
+  return `<span class="type-pill">${escapeXML(work.typeLabel)}</span>
+    <span>${work.year}</span>
+    <span class="sep" aria-hidden="true"></span>
+    <span>${escapeXML(work.tags.slice(0, 2).join(" / "))}</span>`;
+}
+
+/* ---------- 作品列表渲染 ---------- */
+function matchesState(work) {
+  if (state.filter !== "all" && work.type !== state.filter) return false;
+  if (state.query && !work.searchBlob.includes(state.query)) return false;
+  return true;
+}
+
+function renderWorkCards(list, startIndex = 0) {
+  worksGrid.innerHTML = list.map((work, index) => {
+    const overallIndex = startIndex + index + 1;
+    return `<article class="work-card" style="--i:${Math.min(index, 9)}">
+      <div class="work-card__media art-frame" data-art-frame>
+        ${coverMarkup(work)}
+        ${coverFallback(work)}
+        <span class="work-card__no" aria-hidden="true">${String(overallIndex).padStart(2, "0")}</span>
+        <span class="work-card__type">${escapeXML(work.typeLabel)} · ${work.year}</span>
+      </div>
+      <div class="work-card__body">
+        <div class="work-meta"><span>${work.year}</span><span class="sep" aria-hidden="true"></span><span>${escapeXML(work.tags.slice(0, 2).join(" / "))}</span></div>
+        <h3 class="work-card__title">${escapeXML(work.title)}</h3>
+        <p class="work-card__jp">${escapeXML(work.jp)}</p>
+        <p class="work-card__desc">${escapeXML(work.short)}</p>
+        <div class="work-card__footer">
+          ${castMarkup(work)}
+          ${ratingMarkup(work)}
+        </div>
+      </div>
+      <button class="work-hit" type="button" data-open-work="${escapeXML(work.id)}" aria-haspopup="dialog" aria-label="查看《${escapeXML(work.title)}》的作品详情与人物"></button>
+    </article>`;
+  }).join("");
+}
+
+function updateWorksCount(count, total = works.length) {
+  worksCount.innerHTML = `<strong>${count}</strong> 部作品`;
+  worksCount.setAttribute("aria-label", `当前显示 ${count} 部作品，共 ${total} 部`);
+}
+
+function sortedVisibleWorks() {
+  const directionFactor = state.direction === "desc" ? 1 : -1;
+  const filtered = works
+    .map((work, index) => ({ work, index }))
+    .filter((entry) => matchesState(entry.work));
+
+  filtered.sort((a, b) => {
+    if (state.sort === "score") {
+      const aScore = a.work.score === null || a.work.score === undefined ? -Infinity : a.work.score;
+      const bScore = b.work.score === null || b.work.score === undefined ? -Infinity : b.work.score;
+      const aMissing = aScore === -Infinity;
+      const bMissing = bScore === -Infinity;
+      if (aMissing !== bMissing) return aMissing ? 1 : -1;
+      if (aScore !== bScore) return (bScore - aScore) * directionFactor;
+      if (a.work.year !== b.work.year) return b.work.year - a.work.year;
+      return a.index - b.index;
+    }
+    if (a.work.year !== b.work.year) return (b.work.year - a.work.year) * directionFactor;
+    return a.index - b.index;
+  });
+
+  return filtered.map((entry) => entry.work);
+}
+
+function renderSortDirection() {
+  const descending = state.direction === "desc";
+  sortDirIcon.textContent = descending ? "↓" : "↑";
+  sortDirLabel.textContent = descending ? "降序" : "升序";
+  sortDir.title = descending ? "切换为升序" : "切换为降序";
+  sortDir.setAttribute("aria-label", descending ? "当前降序，点击切换为升序" : "当前升序，点击切换为降序");
+}
+
+function renderPagination(totalCount, totalPages) {
+  if (!worksPagination) return;
+  const hasResults = totalCount > 0;
+  worksPagination.hidden = !hasResults;
+  if (!hasResults) {
+    paginationSummary.textContent = "";
+    pageNumbers.innerHTML = "";
+    paginationControls.hidden = true;
+    return;
+  }
+
+  paginationSummary.innerHTML = `第 <strong>${String(state.page).padStart(2, "0")}</strong> / ${String(totalPages).padStart(2, "0")} 页 · 共 <strong>${totalCount}</strong> 部`;
+  const needsPager = totalPages > 1;
+  paginationControls.hidden = !needsPager;
+  if (!needsPager) {
+    pageNumbers.innerHTML = "";
+    pagePrev.disabled = true;
+    pageNext.disabled = true;
+    return;
+  }
+
+  pageNumbers.innerHTML = Array.from({ length: totalPages }, (_, index) => {
+    const page = index + 1;
+    const current = page === state.page;
+    return `<button class="page-num" type="button" data-page="${page}" aria-label="第 ${page} 页"${current ? ' aria-current="page"' : ""}>${String(page).padStart(2, "0")}</button>`;
+  }).join("");
+  pagePrev.disabled = state.page <= 1;
+  pageNext.disabled = state.page >= totalPages;
+}
+
+function renderWorks() {
+  const visible = sortedVisibleWorks();
+  const totalPages = Math.max(1, Math.ceil(visible.length / state.pageSize));
+  state.page = Math.min(Math.max(1, state.page), totalPages);
+  const start = (state.page - 1) * state.pageSize;
+  const pageWorks = visible.slice(start, start + state.pageSize);
+
+  worksGrid.hidden = pageWorks.length === 0;
+  emptyState.hidden = visible.length !== 0;
+  renderWorkCards(pageWorks, start);
+  updateWorksCount(visible.length);
+  renderPagination(visible.length, totalPages);
+}
+
+function scrollToWorks() {
+  const toolbar = document.getElementById("worksToolbar");
+  if (!toolbar) return;
+  const top = toolbar.getBoundingClientRect().top + window.scrollY - 96;
+  window.scrollTo({ top, behavior: isReduced() ? "auto" : "smooth" });
+}
+
+function setPage(page) {
+  const visible = sortedVisibleWorks();
+  const totalPages = Math.max(1, Math.ceil(visible.length / state.pageSize));
+  const nextPage = Math.min(Math.max(1, page), totalPages);
+  if (nextPage === state.page) return;
+  state.page = nextPage;
+  renderWorks();
+  scrollToWorks();
+}
+
+function setSort(sort) {
+  if (sort !== "date" && sort !== "score") return;
+  if (state.sort === sort) return;
+  state.sort = sort;
+  state.direction = "desc";
+  state.page = 1;
+  $$(".sort-btn").forEach((button) => {
+    const active = button.dataset.sort === sort;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  renderSortDirection();
+  renderWorks();
+}
+
+function setFilter(filter) {
+  state.filter = filter;
+  state.page = 1;
+  $$(".filter-btn").forEach((button) => {
+    const active = button.dataset.filter === filter;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  renderWorks();
+}
+
+function setQuery(value) {
+  state.query = normalizeText(value);
+  state.page = 1;
+  renderWorks();
+}
+
+$$(".filter-btn").forEach((button) => {
+  button.addEventListener("click", () => setFilter(button.dataset.filter));
+});
+
+$$(".sort-btn").forEach((button) => {
+  button.addEventListener("click", () => setSort(button.dataset.sort));
+});
+
+sortDir.addEventListener("click", () => {
+  state.direction = state.direction === "desc" ? "asc" : "desc";
+  state.page = 1;
+  renderSortDirection();
+  renderWorks();
+});
+
+renderSortDirection();
+
+pageNumbers.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-page]");
+  if (!button) return;
+  setPage(Number(button.dataset.page));
+});
+pagePrev.addEventListener("click", () => setPage(state.page - 1));
+pageNext.addEventListener("click", () => setPage(state.page + 1));
+
+pageSizeSelect.addEventListener("change", () => {
+  const nextSize = Number(pageSizeSelect.value);
+  if (![12, 20, 40].includes(nextSize)) return;
+  state.pageSize = nextSize;
+  state.page = 1;
+  renderWorks();
+  scrollToWorks();
+});
+
+workSearch.addEventListener("input", (event) => setQuery(event.target.value));
+workSearch.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && workSearch.value) {
+    event.preventDefault();
+    workSearch.value = "";
+    setQuery("");
+    workSearch.blur();
+  }
+});
+
+[workSearch, characterSearch].forEach((input) => {
+  const hint = input.closest(".search-wrap")?.querySelector(".search-hint");
+  hint?.addEventListener("click", () => input.focus());
+});
+characterSearch.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && characterSearch.value) {
+    event.preventDefault();
+    characterSearch.value = "";
+    characterState.query = "";
+    characterState.page = 1;
+    renderCharacters();
+    characterSearch.blur();
+  }
+});
+
+$("#emptyClear").addEventListener("click", () => {
+  state.filter = "all";
+  state.query = "";
+  state.page = 1;
+  workSearch.value = "";
+  $$(".filter-btn").forEach((button) => {
+    const active = button.dataset.filter === "all";
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  renderWorks();
+  workSearch.focus({ preventScroll: true });
+});
+
+const counts = {
+  all: works.length,
+  tv: works.filter((work) => work.type === "tv").length,
+  movie: works.filter((work) => work.type === "movie").length,
+  short: works.filter((work) => work.type === "short").length
+};
+$$(".filter-btn").forEach((button) => {
+  const countEl = $(".count", button);
+  if (countEl) countEl.textContent = String(counts[button.dataset.filter] ?? 0);
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+  const target = event.target;
+  const editable = target instanceof HTMLElement && (
+    target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable
+  );
+  if (event.key === "/" && !editable && !modalOpen && !characterOpen && !menuOpen) {
+    event.preventDefault();
+    const characterSection = document.getElementById("characters");
+    const inCharacters = characterSection && window.scrollY + window.innerHeight / 2 >= characterSection.offsetTop;
+    const target = inCharacters ? characterSearch : workSearch;
+    target.focus({ preventScroll: false });
+    target.scrollIntoView({ behavior: isReduced() ? "auto" : "smooth", block: "center" });
+  }
+});
+
+/* ---------- 角色图鉴 ---------- */
+const characterState = { query: "", work: "all", page: 1, pageSize: 24 };
+let characterAtlas = [];
+
+function buildCharacterAtlas() {
+  const map = new Map();
+  let order = 0;
+  works.forEach((work, workIndex) => {
+    (work.characters || []).forEach((character) => {
+      if (character.id === null || character.id === undefined) return;
+      let entry = map.get(character.id);
+      if (!entry) {
+        entry = { ...character, works: [], firstWorkIndex: workIndex, order: order++ };
+        map.set(character.id, entry);
+      }
+      entry.works.push(work);
+    });
+  });
+  characterAtlas = Array.from(map.values());
+  characterAtlas.forEach((entry) => {
+    entry.works.sort((a, b) => works.indexOf(a) - works.indexOf(b));
+    entry.primaryWork = entry.works[0];
+    entry.searchBlob = normalizeText([
+      entry.cn, entry.jp, entry.desc,
+      entry.works.map((work) => work.title).join(" ")
+    ].join(" "));
+  });
+  characterAtlas.sort((a, b) => a.firstWorkIndex - b.firstWorkIndex || a.order - b.order);
+  if (characterTotal) characterTotal.textContent = String(characterAtlas.length);
+  if (characterWorkFilter && characterWorkFilter.options.length <= 1) {
+    works.forEach((work) => {
+      const option = document.createElement("option");
+      option.value = work.id;
+      option.textContent = `${work.year} · ${work.title}`;
+      characterWorkFilter.appendChild(option);
+    });
+  }
+}
+
+function filteredCharacters() {
+  const query = normalizeText(characterState.query);
+  return characterAtlas.filter((character) => {
+    if (characterState.work !== "all" && !character.works.some((work) => work.id === characterState.work)) return false;
+    if (query && !character.searchBlob.includes(query)) return false;
+    return true;
+  });
+}
+
+function characterCardMarkup(character, number) {
+  const workTitle = character.primaryWork?.title || "";
+  const workCount = character.works.length;
+  const workLabel = workCount > 1 ? `《${workTitle}》等 ${workCount} 部` : `《${workTitle}》`;
+  const source = imageSrc(character.image || "");
+  const alt = `${character.cn || character.jp}，来自${workLabel}的角色画像`;
+  const img = source
+    ? `<img src="${escapeXML(source)}" alt="${escapeXML(alt)}" width="400" height="500" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="window.__imageFallback(this)">`
+    : "";
+  const jp = character.jp && character.jp !== character.cn
+    ? `<p class="atlas-card__jp">${escapeXML(character.jp)}</p>`
+    : "";
+  return `<button class="atlas-card" type="button" data-character-id="${character.id}" aria-label="查看${escapeXML(character.cn || character.jp)}的角色介绍">
+    <div class="character-card__portrait atlas-card__portrait${source ? "" : " is-fallback"}" data-art-frame>
+      ${img}
+      <span class="portrait-fallback" aria-hidden="true">
+        <span>${escapeXML(Array.from(character.cn || character.jp || "京")[0])}</span>
+        <small>${escapeXML(workTitle)}</small>
+      </span>
+      <span class="character-card__no" aria-hidden="true">${String(number).padStart(2, "0")}</span>
+    </div>
+    <div class="atlas-card__body">
+      <p class="atlas-card__work" title="${escapeXML(character.works.map((work) => work.title).join(" / "))}">${escapeXML(workLabel)}</p>
+      <h3 class="atlas-card__name">${escapeXML(character.cn || character.jp)}</h3>
+      ${jp}
+    </div>
+  </button>`;
+}
+
+function renderCharacterPagination(total, totalPages) {
+  if (!characterPagination) return;
+  const show = total > characterState.pageSize;
+  characterPagination.hidden = !show;
+  if (!show) {
+    characterPaginationSummary.textContent = "";
+    characterPageNumbers.innerHTML = "";
+    return;
+  }
+  characterPaginationSummary.innerHTML = `第 <strong>${String(characterState.page).padStart(2, "0")}</strong> / ${String(totalPages).padStart(2, "0")} 页 · 共 <strong>${total}</strong> 位`;
+  characterPageNumbers.innerHTML = Array.from({ length: totalPages }, (_, index) => {
+    const page = index + 1;
+    const current = page === characterState.page;
+    return `<button class="page-num" type="button" data-character-page="${page}" aria-label="角色第 ${page} 页"${current ? ' aria-current="page"' : ""}>${String(page).padStart(2, "0")}</button>`;
+  }).join("");
+  characterPrev.disabled = characterState.page <= 1;
+  characterNext.disabled = characterState.page >= totalPages;
+}
+
+function renderCharacters() {
+  if (!characterAtlas.length) buildCharacterAtlas();
+  const visible = filteredCharacters();
+  const totalPages = Math.max(1, Math.ceil(visible.length / characterState.pageSize));
+  characterState.page = Math.min(Math.max(1, characterState.page), totalPages);
+  const start = (characterState.page - 1) * characterState.pageSize;
+  const pageItems = visible.slice(start, start + characterState.pageSize);
+  characterGrid.innerHTML = pageItems.map((character, index) => characterCardMarkup(character, start + index + 1)).join("");
+  characterGrid.hidden = pageItems.length === 0;
+  characterEmpty.hidden = visible.length !== 0;
+  if (characterCount) characterCount.innerHTML = `<strong>${visible.length}</strong> 位主角`;
+  renderCharacterPagination(visible.length, totalPages);
+}
+
+function setCharacterPage(page) {
+  const totalPages = Math.max(1, Math.ceil(filteredCharacters().length / characterState.pageSize));
+  const nextPage = Math.min(Math.max(1, page), totalPages);
+  if (nextPage === characterState.page) return;
+  characterState.page = nextPage;
+  renderCharacters();
+  const anchor = document.getElementById("characters");
+  if (anchor) window.scrollTo({ top: anchor.offsetTop + 80, behavior: isReduced() ? "auto" : "smooth" });
+}
+
+characterSearch.addEventListener("input", (event) => {
+  characterState.query = event.target.value;
+  characterState.page = 1;
+  renderCharacters();
+});
+characterWorkFilter.addEventListener("change", (event) => {
+  characterState.work = event.target.value;
+  characterState.page = 1;
+  renderCharacters();
+});
+characterClear.addEventListener("click", () => {
+  characterState.query = "";
+  characterState.work = "all";
+  characterState.page = 1;
+  characterSearch.value = "";
+  characterWorkFilter.value = "all";
+  renderCharacters();
+  characterSearch.focus();
+});
+characterPageNumbers.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-character-page]");
+  if (!button) return;
+  setCharacterPage(Number(button.dataset.characterPage));
+});
+characterPrev.addEventListener("click", () => setCharacterPage(characterState.page - 1));
+characterNext.addEventListener("click", () => setCharacterPage(characterState.page + 1));
+characterPageSizeSelect.addEventListener("change", () => {
+  const nextSize = Number(characterPageSizeSelect.value);
+  if (![12, 24, 48].includes(nextSize)) return;
+  characterState.pageSize = nextSize;
+  characterState.page = 1;
+  renderCharacters();
+  const anchor = document.getElementById("characters");
+  if (anchor) window.scrollTo({ top: anchor.offsetTop + 80, behavior: isReduced() ? "auto" : "smooth" });
+});
+
+/* ---------- 年表渲染 ---------- */
+function renderTimeline() {
+  timelineTrack.setAttribute("role", "list");
+  timelineTrack.innerHTML = timelineData.map((item) => `<article class="timeline-item" role="listitem">
+    <div class="timeline-year">${escapeXML(item.year)}</div>
+    <div class="timeline-kind">${escapeXML(item.kind)}</div>
+    <span class="timeline-node" aria-hidden="true"></span>
+    <div class="timeline-copy">
+      <h3>${escapeXML(item.title)}</h3>
+      <p>${escapeXML(item.desc)}</p>
+      <span class="timeline-tag">${escapeXML(item.tag)}</span>
+    </div>
+  </article>`).join("");
+}
+
+/* ---------- 详情弹窗 ---------- */
+const workModal = $("#workModal");
+const modalPanel = $(".modal__panel", workModal);
+const modalScroll = $("#modalScroll");
+const modalClose = $("#modalClose");
+const siteHeader = $("#siteHeader");
+const mainEl = $("#main");
+const footerEl = $("#footer");
+let modalOpen = false;
+let lastFocused = null;
+let modalHideTimer = null;
+let menuOpen = false;
+let menuHideTimer = null;
+const menuToggle = $("#menuToggle");
+const mobileMenu = $("#mobileMenu");
+const characterModal = $("#characterModal");
+const characterModalPanel = $(".character-modal__panel", characterModal);
+const characterModalClose = $("#characterModalClose");
+const characterModalImage = $("#characterModalImage");
+const characterModalFallback = $("#characterModalFallback");
+const characterModalName = $("#characterModalName");
+const characterModalJp = $("#characterModalJp");
+const characterModalWorks = $("#characterModalWorks");
+const characterModalDesc = $("#characterModalDesc");
+const characterModalSource = $("#characterModalSource");
+characterModalImage?.addEventListener("error", () => window.__imageFallback(characterModalImage));
+let characterOpen = false;
+let characterLastFocused = null;
+let characterHideTimer = null;
+
+function lockPage() {
+  document.body.classList.toggle("is-locked", modalOpen || characterOpen || menuOpen);
+}
+
+function setPageInert(inert) {
+  if (siteHeader) siteHeader.inert = inert;
+  if (mainEl) mainEl.inert = inert;
+  if (footerEl) footerEl.inert = inert;
+}
+
+function getFocusable(container) {
+  return $$("a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])", container)
+    .filter((element) => {
+      const style = window.getComputedStyle(element);
+      return style.visibility !== "hidden" && style.display !== "none" && element.getClientRects().length > 0;
+    });
+}
+
+function modalHTML(work) {
+  const index = works.indexOf(work) + 1;
+  const characterItems = work.characters.map((character) => `<button class="modal-char" type="button" data-character-id="${character.id}" aria-label="查看${escapeXML(character.cn)}的角色介绍">
+    <span class="avatar" aria-hidden="true">
+      <img src="${escapeXML(imageSrc(character.image))}" alt="" width="400" height="500" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="window.__imageFallback(this)">
+      <span class="avatar__fallback" aria-hidden="true">${escapeXML(Array.from(character.cn)[0] || "京")}</span>
+    </span>
+    <div class="modal-char__text">
+      <h3 class="modal-char__name">${escapeXML(character.cn)}</h3>
+      <p class="modal-char__jp">${escapeXML(character.jp)}</p>
+      <p class="modal-char__desc">${escapeXML(character.desc)}</p>
+    </div>
+  </button>`).join("");
+
+  return `<div class="modal-hero art-frame" data-art-frame>
+    ${coverMarkup(work, { eager: true })}
+    ${coverFallback(work)}
+    <span class="modal-hero__label">WORK ARCHIVE / ${String(index).padStart(2, "0")}</span>
+    <div class="modal-hero__title">
+      <h2 id="modalTitle">${escapeXML(work.title)}</h2>
+      <p class="jp">${escapeXML(work.jp)}</p>
+    </div>
+  </div>
+  <div class="modal-body">
+    <div class="modal-topline">
+      <div class="modal-meta">${workMeta(work)}</div>
+      <div class="modal-rating">${ratingMarkup(work)}</div>
+    </div>
+
+    <section class="modal-section">
+      <p class="modal-section__eyebrow">Synopsis / 故事</p>
+      <p class="modal-synopsis" id="modalDesc">${escapeXML(work.detail)}</p>
+      <div class="modal-tags">${tagsMarkup(work)}</div>
+    </section>
+
+    <section class="modal-section">
+      <p class="modal-section__eyebrow">Credits / 制作</p>
+      <dl class="credits">
+        <div class="credit"><dt>导演 / 监督</dt><dd>${escapeXML(work.director)}</dd></div>
+        <div class="credit"><dt>编剧 / 系列构成</dt><dd>${escapeXML(work.writer)}</dd></div>
+        <div class="credit"><dt>制作公司</dt><dd>${escapeXML(work.studio)}</dd></div>
+      </dl>
+    </section>
+
+    <section class="modal-section">
+      <p class="modal-section__eyebrow">Characters / 主要人物</p>
+      <p class="modal-characters__hint">点击任意角色，查看完整的角色介绍。</p>
+      <div class="modal-characters">${characterItems}</div>
+    </section>
+
+    <div class="modal-source">
+      <span>评分平台：${RATING.label} · 统计时间：${RATING.time} · 参考值，非官方实时评分。<br>作品海报来自各作品公开资料 / Bangumi，角色画像来自 AniList / Bangumi，版权归原权利人所有。</span>
+      <span class="modal-source__links">
+        <a class="modal-source__link" href="${escapeXML(work.bgmUrl)}" target="_blank" rel="noopener noreferrer">Bangumi 作品页 ↗</a>
+        <a class="modal-source__link" href="${escapeXML(work.officialUrl)}" target="_blank" rel="noopener noreferrer">官方作品页 ↗</a>
+      </span>
+    </div>
+  </div>`;
+}
+
+function openCharacterModal(characterId, trigger) {
+  if (characterOpen) return;
+  if (!characterAtlas.length) buildCharacterAtlas();
+  const character = characterAtlas.find((item) => Number(item.id) === Number(characterId));
+  if (!character) return;
+  characterLastFocused = trigger || document.activeElement;
+  const image = imageSrc(character.image || "");
+  const portrait = characterModalImage.closest("[data-art-frame]");
+  portrait?.classList.remove("is-fallback");
+  characterModalImage.hidden = !image;
+  characterModalImage.alt = `${character.cn || character.jp}的角色画像`;
+  characterModalImage.style.display = image ? "" : "none";
+  if (image) characterModalImage.src = image;
+  else characterModalImage.removeAttribute("src");
+  characterModalFallback.textContent = Array.from(character.cn || character.jp || "京")[0];
+  characterModalName.textContent = character.cn || character.jp;
+  characterModalJp.textContent = character.jp && character.jp !== character.cn ? character.jp : "";
+  characterModalWorks.textContent = character.works
+    .slice()
+    .sort((a, b) => works.indexOf(a) - works.indexOf(b))
+    .map((work) => `《${work.title}》 ${work.year}`)
+    .join("　·　");
+  characterModalDesc.textContent = character.desc || "主要角色，详细资料仍在整理中。";
+  characterModalSource.href = `https://bgm.tv/character/${character.id}`;
+  characterOpen = true;
+  if (modalOpen) workModal.inert = true;
+  else setPageInert(true);
+  clearTimeout(characterHideTimer);
+  characterModal.hidden = false;
+  requestAnimationFrame(() => {
+    characterModal.classList.add("is-open");
+    characterModalClose.focus({ preventScroll: true });
+  });
+  lockPage();
+}
+
+function closeCharacterModal() {
+  if (!characterOpen) return;
+  characterOpen = false;
+  characterModal.classList.remove("is-open");
+  if (modalOpen) workModal.inert = false;
+  else setPageInert(false);
+  lockPage();
+  const restoreTarget = characterLastFocused && characterLastFocused.isConnected ? characterLastFocused : null;
+  characterHideTimer = window.setTimeout(() => {
+    characterModal.hidden = true;
+    if (restoreTarget) restoreTarget.focus({ preventScroll: true });
+  }, isReduced() ? 20 : 320);
+}
+
+function openModal(workId, trigger) {
+  const work = workById.get(workId);
+  if (!work || modalOpen) return;
+  if (menuOpen) closeMenu(false);
+  lastFocused = trigger || document.activeElement;
+  modalScroll.innerHTML = modalHTML(work);
+  modalScroll.scrollTop = 0;
+  modalOpen = true;
+  clearTimeout(modalHideTimer);
+  workModal.hidden = false;
+  requestAnimationFrame(() => {
+    workModal.classList.add("is-open");
+    modalClose.focus({ preventScroll: true });
+  });
+  lockPage();
+  setPageInert(true);
+}
+
+function closeModal() {
+  if (!modalOpen) return;
+  modalOpen = false;
+  workModal.classList.remove("is-open");
+  setPageInert(false);
+  lockPage();
+  const restoreTarget = lastFocused && lastFocused.isConnected ? lastFocused : null;
+  modalHideTimer = window.setTimeout(() => {
+    workModal.hidden = true;
+    if (restoreTarget) restoreTarget.focus({ preventScroll: true });
+  }, isReduced() ? 20 : 360);
+}
+
+modalClose.addEventListener("click", closeModal);
+workModal.addEventListener("click", (event) => {
+  if (event.target.closest("[data-close-modal]")) {
+    closeModal();
+    return;
+  }
+  const characterButton = event.target.closest("[data-character-id]");
+  if (characterButton) openCharacterModal(characterButton.dataset.characterId, characterButton);
+});
+characterModalClose.addEventListener("click", closeCharacterModal);
+characterModal.addEventListener("click", (event) => {
+  if (event.target.closest("[data-close-character]")) closeCharacterModal();
+});
+characterGrid.addEventListener("click", (event) => {
+  const characterButton = event.target.closest("[data-character-id]");
+  if (characterButton) openCharacterModal(characterButton.dataset.characterId, characterButton);
+});
+
+document.addEventListener("click", (event) => {
+  const trigger = event.target.closest("[data-open-work]");
+  if (!trigger) return;
+  openModal(trigger.dataset.openWork, trigger);
+});
+
+/* ---------- 移动端菜单 ---------- */
+function openMenu() {
+  if (menuOpen) return;
+  menuOpen = true;
+  clearTimeout(menuHideTimer);
+  mobileMenu.hidden = false;
+  mobileMenu.setAttribute("aria-hidden", "false");
+  requestAnimationFrame(() => {
+    mobileMenu.classList.add("is-open");
+    menuToggle.setAttribute("aria-expanded", "true");
+    menuToggle.setAttribute("aria-label", "关闭导航菜单");
+    const firstLink = $("a", mobileMenu);
+    if (firstLink) firstLink.focus({ preventScroll: true });
+  });
+  if (mainEl) mainEl.inert = true;
+  if (footerEl) footerEl.inert = true;
+  lockPage();
+}
+
+function closeMenu(restoreFocus = true) {
+  if (!menuOpen) return;
+  menuOpen = false;
+  mobileMenu.classList.remove("is-open");
+  mobileMenu.setAttribute("aria-hidden", "true");
+  menuToggle.setAttribute("aria-expanded", "false");
+  menuToggle.setAttribute("aria-label", "打开导航菜单");
+  if (mainEl) mainEl.inert = false;
+  if (footerEl) footerEl.inert = false;
+  lockPage();
+  menuHideTimer = window.setTimeout(() => {
+    mobileMenu.hidden = true;
+  }, isReduced() ? 20 : 460);
+  if (restoreFocus) menuToggle.focus({ preventScroll: true });
+}
+
+menuToggle.addEventListener("click", () => {
+  if (menuOpen) closeMenu(true);
+  else openMenu();
+});
+
+$$("[data-mobile-nav]").forEach((link) => {
+  link.addEventListener("click", () => {
+    closeMenu(false);
+    window.setTimeout(() => menuToggle.focus({ preventScroll: true }), 0);
+  });
+});
+
+const desktopMedia = window.matchMedia("(min-width: 861px)");
+const onDesktopChange = (event) => {
+  if (event.matches && menuOpen) closeMenu(false);
+};
+if (desktopMedia.addEventListener) desktopMedia.addEventListener("change", onDesktopChange);
+else desktopMedia.addListener(onDesktopChange);
+
+/* ---------- 全局键盘 / 焦点陷阱 ---------- */
+document.addEventListener("keydown", (event) => {
+  if (characterOpen) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeCharacterModal();
+      return;
+    }
+    if (event.key === "Tab") {
+      const focusable = getFocusable(characterModalPanel);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !characterModalPanel.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !characterModalPanel.contains(document.activeElement))) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    return;
+  }
+
+  if (event.key === "Escape") {
+    if (modalOpen) {
+      event.preventDefault();
+      closeModal();
+      return;
+    }
+    if (menuOpen) {
+      event.preventDefault();
+      closeMenu(true);
+      return;
+    }
+  }
+
+  if (modalOpen && event.key === "Tab") {
+    const focusable = getFocusable(modalPanel);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && (document.activeElement === first || !modalPanel.contains(document.activeElement))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || !modalPanel.contains(document.activeElement))) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+});
+
+/* ---------- 页面滚动：导航高亮 / 进度 / 视差 ---------- */
+const navLinks = $$("[data-nav]");
+const navSections = ["about", "works", "characters", "timeline"]
+  .map((id) => document.getElementById(id))
+  .filter(Boolean);
+let scrollRaf = null;
+
+function updateScrollUI() {
+  const scrollY = window.scrollY || window.pageYOffset;
+  const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+  const progress = Math.min(1, Math.max(0, scrollY / maxScroll));
+  $("#scrollProgress").style.width = `${progress * 100}%`;
+  siteHeader.classList.toggle("is-scrolled", scrollY > 24);
+
+  const probe = scrollY + Math.min(window.innerHeight * 0.38, 340);
+  let current = "";
+  navSections.forEach((section) => {
+    const top = section.getBoundingClientRect().top + scrollY;
+    if (top <= probe) current = section.id;
+  });
+  navLinks.forEach((link) => {
+    if (link.dataset.nav === current) link.setAttribute("aria-current", "location");
+    else link.removeAttribute("aria-current");
+  });
+}
+
+function onScroll() {
+  if (scrollRaf) return;
+  scrollRaf = requestAnimationFrame(() => {
+    scrollRaf = null;
+    updateScrollUI();
+  });
+}
+window.addEventListener("scroll", onScroll, { passive: true });
+window.addEventListener("resize", onScroll, { passive: true });
+
+const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
+const hero = $("#top");
+if (hero && finePointer.matches) {
+  let heroRaf = null;
+  hero.addEventListener("pointermove", (event) => {
+    if (isReduced()) return;
+    if (heroRaf) cancelAnimationFrame(heroRaf);
+    heroRaf = requestAnimationFrame(() => {
+      const rect = hero.getBoundingClientRect();
+      const px = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
+      const py = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
+      hero.style.setProperty("--px", px.toFixed(3));
+      hero.style.setProperty("--py", py.toFixed(3));
+    });
+  }, { passive: true });
+  hero.addEventListener("pointerleave", () => {
+    hero.style.setProperty("--px", "0");
+    hero.style.setProperty("--py", "0");
+  }, { passive: true });
+}
+
+/* ---------- 滚动淡入 ---------- */
+function setupReveal() {
+  const revealItems = $$("[data-reveal]");
+  if (isReduced() || !("IntersectionObserver" in window)) {
+    revealItems.forEach((item) => item.classList.add("is-visible"));
+    return;
+  }
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: "0px 0px -55px 0px" });
+  revealItems.forEach((item) => observer.observe(item));
+  reduceMotion.addEventListener?.("change", (event) => {
+    if (event.matches) {
+      revealItems.forEach((item) => item.classList.add("is-visible"));
+      observer.disconnect();
+    }
+  });
+}
+
+/* ---------- 返回顶部 ---------- */
+$("#toTop").addEventListener("click", () => {
+  window.scrollTo({ top: 0, behavior: isReduced() ? "auto" : "smooth" });
+});
+
+/* ---------- 首屏背景轮播 ---------- */
+const heroCaptions = [
+  "SCENE / ヴァイオレット・エヴァーガーデン — © KYOTO ANIMATION",
+  "SCENE / ヴァイオレット・エヴァーガーデン — © KYOTO ANIMATION",
+  "SCENE / ヴァイオレット・エヴァーガーデン — © KYOTO ANIMATION",
+  "SCENE / ヴァイオレット・エヴァーガーデン — © KYOTO ANIMATION"
+];
+let heroCurrent = 0;
+let heroTimer = null;
+
+function stopHeroAuto() {
+  if (heroTimer) {
+    clearInterval(heroTimer);
+    heroTimer = null;
+  }
+}
+
+function startHeroAuto() {
+  stopHeroAuto();
+  if (document.hidden) return;
+  heroTimer = window.setInterval(() => setHeroSlide(heroCurrent + 1), 8000);
+}
+
+function setHeroSlide(index) {
+  if (!heroArtSlides.length) return;
+  const total = heroArtSlides.length;
+  heroCurrent = ((index % total) + total) % total;
+  heroArtSlides.forEach((slide, slideIndex) => {
+    slide.classList.toggle("is-active", slideIndex === heroCurrent);
+  });
+  if (heroCaption) heroCaption.textContent = heroCaptions[heroCurrent] || "";
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) stopHeroAuto();
+  else startHeroAuto();
+});
+
+/* ---------- 初始化 ---------- */
+setHeroSlide(0);
+startHeroAuto();
+renderWorks();
+renderCharacters();
+renderTimeline();
+setupReveal();
+updateScrollUI();
+
+window.addEventListener("load", () => {
+  onScroll();
+}, { once: true });
