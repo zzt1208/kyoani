@@ -713,11 +713,10 @@ function openCharacterModal(characterId, trigger) {
   characterModalFallback.textContent = Array.from(character.cn || character.jp || "京")[0];
   characterModalName.textContent = character.cn || character.jp;
   characterModalJp.textContent = character.jp && character.jp !== character.cn ? character.jp : "";
-  characterModalWorks.textContent = character.works
+  const characterWorks = character.works
     .slice()
-    .sort((a, b) => works.indexOf(a) - works.indexOf(b))
-    .map((work) => `《${work.title}》 ${work.year}`)
-    .join("　·　");
+    .sort((a, b) => works.indexOf(a) - works.indexOf(b));
+  characterModalWorks.innerHTML = `<span class="character-modal__works-label">登场作品 · 点击查看动画</span>` + characterWorks.map((work) => `<button class="character-modal__work" type="button" data-character-work="${escapeXML(work.id)}" aria-label="查看《${escapeXML(work.title)}》的动画详情">《${escapeXML(work.title)}》<small>${escapeXML(work.year)}</small></button>`).join("");
   characterModalDesc.textContent = character.desc || "主要角色，详细资料仍在整理中。";
   characterModalSource.href = `https://bgm.tv/character/${character.id}`;
   characterOpen = true;
@@ -732,18 +731,36 @@ function openCharacterModal(characterId, trigger) {
   lockPage();
 }
 
-function closeCharacterModal() {
+function closeCharacterModal({ restoreFocus = true } = {}) {
   if (!characterOpen) return;
   characterOpen = false;
   characterModal.classList.remove("is-open");
   if (modalOpen) workModal.inert = false;
   else setPageInert(false);
   lockPage();
-  const restoreTarget = characterLastFocused && characterLastFocused.isConnected ? characterLastFocused : null;
+  const restoreTarget = restoreFocus && characterLastFocused && characterLastFocused.isConnected ? characterLastFocused : null;
   characterHideTimer = window.setTimeout(() => {
     characterModal.hidden = true;
     if (restoreTarget) restoreTarget.focus({ preventScroll: true });
   }, isReduced() ? 20 : 320);
+}
+
+function openWorkFromCharacter(workId) {
+  const work = workById.get(workId);
+  if (!work) return;
+  const returnTarget = characterLastFocused;
+  if (modalOpen) {
+    // The work modal is already open behind the character sheet: replace its content.
+    modalScroll.innerHTML = modalHTML(work);
+    modalScroll.scrollTop = 0;
+    closeCharacterModal({ restoreFocus: false });
+    requestAnimationFrame(() => {
+      if (modalOpen) modalClose.focus({ preventScroll: true });
+    });
+  } else {
+    closeCharacterModal({ restoreFocus: false });
+    openModal(workId, returnTarget);
+  }
 }
 
 function openModal(workId, trigger) {
@@ -786,8 +803,13 @@ workModal.addEventListener("click", (event) => {
   const characterButton = event.target.closest("[data-character-id]");
   if (characterButton) openCharacterModal(characterButton.dataset.characterId, characterButton);
 });
-characterModalClose.addEventListener("click", closeCharacterModal);
+characterModalClose.addEventListener("click", () => closeCharacterModal());
 characterModal.addEventListener("click", (event) => {
+  const workButton = event.target.closest("[data-character-work]");
+  if (workButton) {
+    openWorkFromCharacter(workButton.dataset.characterWork);
+    return;
+  }
   if (event.target.closest("[data-close-character]")) closeCharacterModal();
 });
 characterGrid.addEventListener("click", (event) => {

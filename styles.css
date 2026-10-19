@@ -4062,3 +4062,46 @@
       font-size: 0.61rem;
       letter-spacing: 0.04em;
     }
+
+    .character-modal__works {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      line-height: 1.5;
+    }
+    .character-modal__works-label {
+      flex: 0 0 100%;
+      color: var(--ink-faint);
+      font-size: 0.58rem;
+      letter-spacing: 0.06em;
+    }
+    .character-modal__work {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      max-width: 100%;
+      padding: 5px 9px;
+      border: 1px solid rgba(38, 53, 65, 0.14);
+      border-radius: 8px;
+      color: var(--ink-soft);
+      background: rgba(255, 252, 246, 0.42);
+      font: inherit;
+      font-size: 0.65rem;
+      line-height: 1.5;
+      text-align: left;
+      cursor: pointer;
+      transition: color 0.22s var(--ease), background 0.22s var(--ease), border-color 0.22s var(--ease);
+    }
+    .character-modal__work:hover,
+    .character-modal__work:focus-visible {
+      color: var(--ink);
+      border-color: rgba(185, 119, 120, 0.4);
+      background: rgba(255, 252, 246, 0.8);
+    }
+    .character-modal__work:focus-visible { outline: 2px solid rgba(185, 119, 120, 0.5); outline-offset: 2px; }
+    .character-modal__work small {
+      color: var(--ink-faint);
+      font-family: var(--font-latin);
+      font-size: 0.55rem;
+      letter-spacing: 0.02em;
+    }
