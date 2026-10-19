@@ -4056,24 +4056,12 @@
 
   
 
-    .modal-characters__hint {
-      margin-top: 7px;
-      color: var(--ink-faint);
-      font-size: 0.61rem;
-      letter-spacing: 0.04em;
-    }
 
     .character-modal__works {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
       line-height: 1.5;
-    }
-    .character-modal__works-label {
-      flex: 0 0 100%;
-      color: var(--ink-faint);
-      font-size: 0.58rem;
-      letter-spacing: 0.06em;
     }
     .character-modal__work {
       display: inline-flex;

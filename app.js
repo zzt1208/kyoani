@@ -682,7 +682,6 @@ function modalHTML(work) {
 
     <section class="modal-section">
       <p class="modal-section__eyebrow">Characters / 主要人物</p>
-      <p class="modal-characters__hint">点击任意角色，查看完整的角色介绍。</p>
       <div class="modal-characters">${characterItems}</div>
     </section>
 
@@ -716,7 +715,7 @@ function openCharacterModal(characterId, trigger) {
   const characterWorks = character.works
     .slice()
     .sort((a, b) => works.indexOf(a) - works.indexOf(b));
-  characterModalWorks.innerHTML = `<span class="character-modal__works-label">登场作品 · 点击查看动画</span>` + characterWorks.map((work) => `<button class="character-modal__work" type="button" data-character-work="${escapeXML(work.id)}" aria-label="查看《${escapeXML(work.title)}》的动画详情">《${escapeXML(work.title)}》<small>${escapeXML(work.year)}</small></button>`).join("");
+  characterModalWorks.innerHTML = characterWorks.map((work) => `<button class="character-modal__work" type="button" data-character-work="${escapeXML(work.id)}" aria-label="查看《${escapeXML(work.title)}》的动画详情">《${escapeXML(work.title)}》<small>${escapeXML(work.year)}</small></button>`).join("");
   characterModalDesc.textContent = character.desc || "主要角色，详细资料仍在整理中。";
   characterModalSource.href = `https://bgm.tv/character/${character.id}`;
   characterOpen = true;
