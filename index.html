@@ -458,7 +458,35 @@
         <p class="character-modal__desc" id="characterModalDesc"></p>
         <div class="character-modal__foot">
           <a id="characterModalSource" href="https://bgm.tv/" target="_blank" rel="noopener noreferrer">Bangumi 角色资料 ↗</a>
+          <button class="character-quote-button" id="characterQuoteButton" type="button">制作台词卡</button>
+          <button class="character-share-button" id="characterShareButton" type="button">复制角色链接</button>
           <span>角色画像：AniList / Bangumi · 版权归原权利人</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="quote-modal" id="quoteModal" hidden>
+    <div class="modal__scrim" data-close-quote></div>
+    <div class="quote-modal__panel" role="dialog" aria-modal="true" aria-labelledby="quoteName" tabindex="-1">
+      <button class="modal-close" id="quoteModalClose" type="button" aria-label="关闭台词卡">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.45" aria-hidden="true"><path d="m4 4 12 12M16 4 4 16" stroke-linecap="round"/></svg>
+      </button>
+      <div class="quote-modal__layout">
+        <div class="quote-preview-wrap">
+          <canvas id="quoteCanvas" width="1080" height="1350" aria-label="台词卡预览"></canvas>
+        </div>
+        <div class="quote-editor">
+          <p class="quote-kicker">QUOTE CARD / 台词卡</p>
+          <h2 class="quote-title" id="quoteName"></h2>
+          <label class="quote-label" for="quoteInput">台词</label>
+          <textarea id="quoteInput" rows="4" maxlength="90" placeholder="输入一句台词…" spellcheck="false"></textarea>
+          <p class="quote-hint" id="quoteHint">可在上方修改台词，保存为 PNG 分享。</p>
+          <div class="quote-actions">
+            <button class="quote-download" id="quoteDownload" type="button">保存图片</button>
+            <button class="quote-copy" id="quoteCopy" type="button">复制文字</button>
+          </div>
+          <p class="quote-credit">角色画像：AniList / Bangumi · 版权归原权利人</p>
         </div>
       </div>
     </div>
