@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f3eee4">
+  <meta name="description" content="京都动画非官方作品档案：62 部动画、115 位主要人物、14 个系列与观看顺序，支持筛选、搜索和深链接。">
+  <title>京都动画 · 在光落下的地方，描摹人心</title>
+
+  <!-- 页面使用本地资源：海报、人物画像与实景照片位于 assets/，字体使用系统中日文字体。 -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%23f6f1e7'/%3E%3Ccircle cx='24' cy='24' r='12' fill='none' stroke='%23b97778' stroke-width='1.5'/%3E%3Cpath d='M24 12c4 4 4 8 0 12c-4-4-4-8 0-12Z M36 24c-4 4-8 4-12 0c4-4 8-4 12 0Z M24 36c-4-4-4-8 0-12c4 4 4 8 0 12Z M12 24c4-4 8-4 12 0c-4 4-8 4-12 0Z' fill='%23b97778'/%3E%3C/svg%3E">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <div class="page-grain" aria-hidden="true"></div>
+  <div class="scroll-progress" aria-hidden="true"><span id="scrollProgress"></span></div>
+
+  <!-- ========== 固定毛玻璃导航 ========== -->
+  <header class="site-header" id="siteHeader">
+    <div class="nav-shell">
+      <a class="brand" href="#top" aria-label="京都动画概念页，返回顶部">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.05">
+            <circle cx="24" cy="24" r="20.5" opacity=".36"/>
+            <path d="M24 5.5C30 12.2 30 19 24 24C18 19 18 12.2 24 5.5Z"/>
+            <path d="M42.5 24C35.8 30 29 30 24 24C29 18 35.8 18 42.5 24Z"/>
+            <path d="M24 42.5C18 35.8 18 29 24 24C30 29 30 35.8 24 42.5Z"/>
+            <path d="M5.5 24C12.2 18 19 18 24 24C19 30 12.2 30 5.5 24Z"/>
+            <circle cx="24" cy="24" r="2.1" fill="currentColor" stroke="none"/>
+          </svg>
+        </span>
+        <span class="brand-word">
+          <span class="brand-jp">京都アニメーション</span>
+          <span class="brand-en">KYOTO ANIMATION</span>
+        </span>
+      </a>
+
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="#works" data-nav="works"><span>作品</span><span class="nav-en">WORKS</span></a>
+        <a href="#series" data-nav="series"><span>系列</span><span class="nav-en">SERIES</span></a>
+        <a href="#characters" data-nav="characters"><span>人物</span><span class="nav-en">CHARACTERS</span></a>
+        <a href="#timeline" data-nav="timeline"><span>年表</span><span class="nav-en">HISTORY</span></a>
+        <a href="#about" data-nav="about"><span>关于</span><span class="nav-en">STUDIO</span></a>
+      </nav>
+
+      <span class="nav-meta" aria-hidden="true">UJI, KYOTO · 1981</span>
+
+      <button class="menu-toggle" id="menuToggle" type="button" aria-label="打开导航菜单" aria-expanded="false" aria-controls="mobileMenu">
+        <span class="menu-toggle__lines" aria-hidden="true"><span></span><span></span><span></span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========== 移动端全屏菜单 ========== -->
+  <div class="mobile-menu" id="mobileMenu" hidden>
+    <div class="mobile-menu__rule"></div>
+    <div class="mobile-menu__index" aria-hidden="true">
+      <span>Menu / 京都动画</span>
+      <span>Fan concept</span>
+    </div>
+    <nav aria-label="移动端主导航">
+      <a href="#works" data-mobile-nav><span class="m-no">01</span>作品<span class="m-en">WORKS</span></a>
+      <a href="#series" data-mobile-nav><span class="m-no">02</span>系列<span class="m-en">SERIES</span></a>
+      <a href="#characters" data-mobile-nav><span class="m-no">03</span>人物<span class="m-en">CHARACTERS</span></a>
+      <a href="#timeline" data-mobile-nav><span class="m-no">04</span>年表<span class="m-en">HISTORY</span></a>
+      <a href="#about" data-mobile-nav><span class="m-no">05</span>关于<span class="m-en">STUDIO</span></a>
+    </nav>
+    <div class="mobile-menu__foot">
+      <p>在光落下的地方，描摹人心。62 部动画、115 位人物，以及 14 个系列。</p>
+      <div class="m-place"><span>京都府宇治市</span><span>62 WORKS · 1981—2025</span></div>
+    </div>
+  </div>
+
+  <main id="main">
+    <!-- ========== Hero ========== -->
+    <section class="hero" id="top" aria-labelledby="heroTitle">
+            <div class="hero-art-carousel" aria-hidden="true">
+        <img class="hero-art is-active" src="assets/hero/hero-1.webp" alt="" data-hero-slide="0" style="object-position:60% 50%" loading="eager" decoding="async" fetchpriority="high">
+        <img class="hero-art" src="assets/hero/hero-2.webp" alt="" data-hero-slide="1" style="object-position:50% 50%" loading="eager" decoding="async">
+        <img class="hero-art" src="assets/hero/hero-3.webp" alt="" data-hero-slide="2" style="object-position:50% 50%" loading="eager" decoding="async">
+        <img class="hero-art" src="assets/hero/hero-4.webp" alt="" data-hero-slide="3" style="object-position:52% 50%" loading="eager" decoding="async">
+      </div>
+
+      <div class="hero-shade" aria-hidden="true"></div>
+
+      <div class="hero-inner">
+        <div class="hero-main">
+          <div class="hero-copy">
+            <p class="hero-eyebrow">
+              <span>京都动画</span><span class="sep" aria-hidden="true"></span>
+              <span class="jp">京都アニメーション</span><span class="sep" aria-hidden="true"></span>
+              <span>KYOTO ANIMATION</span>
+            </p>
+            <h1 class="hero-title" id="heroTitle">
+              <span class="hero-title__line">在光落下的地方，</span>
+              <span class="hero-title__line hero-title__line--accent">描摹人心。</span>
+            </h1>
+            <p class="hero-title-en">Where the light falls, the heart is drawn.</p>
+            <p class="hero-lead">京都动画的 62 部作品、115 位人物和 14 个系列，都收在这里。可以从作品看起，也可以顺着系列走。</p>
+            <div class="hero-actions">
+              <a class="btn btn--primary" href="#works">
+                浏览全部作品
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.35" aria-hidden="true"><path d="M3 10h13M11 5l5 5-5 5"/></svg>
+              </a>
+              <a class="btn btn--ghost" href="#about">
+                认识工作室
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.35" aria-hidden="true"><path d="M10 3v13M5 11l5 5 5-5"/></svg>
+              </a>
+            </div>
+          </div>
+
+          <aside class="hero-card glass" aria-label="京都动画全作品档案">
+            <div class="hero-card__top">
+              <span class="hero-card__seal" aria-hidden="true">京</span>
+              <span class="hero-card__stamp"><span>STUDIO NOTE</span><strong>京都アニメーション</strong></span>
+              <span class="hero-card__no" aria-hidden="true">NO. 01</span>
+            </div>
+            <p class="hero-card__jp">日常の、その先へ。</p>
+            <p class="hero-card__en">Kyoto Animation, Uji.</p>
+            <p class="hero-card__text">1981 年，一群人在京都开始做动画。1985 年公司设立，工作室此后一直在宇治。河川、坡道、校舍和餐桌，慢慢进了他们的画里。</p>
+            <div class="hero-card__keywords" aria-label="档案关键词">
+              <span>62 部作品</span><span>TV 动画</span><span>剧场版</span><span>OVA</span><span>115 位人物</span>
+            </div>
+            <div class="hero-card__foot">
+              <span>京都府宇治市 · 非官方粉丝概念页</span>
+              <span>62 WORKS · 1981—2025</span>
+            </div>
+          </aside>
+        </div>
+
+        <div class="hero-footer">
+          <span class="hero-scroll"><span class="hero-scroll__line" aria-hidden="true"></span>向下浏览</span>
+          <span class="hero-caption" id="heroCaption" aria-live="polite">SCENE / ヴァイオレット・エヴァーガーデン — © KYOTO ANIMATION</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 工作室简介 ========== -->
+    <section class="section about" id="about" aria-labelledby="aboutTitle">
+      <span class="section-watermark" aria-hidden="true">宇治</span>
+      <div class="container">
+        <div class="section-head" data-reveal>
+          <span class="section-index" aria-hidden="true">01</span>
+          <div>
+            <p class="section-kicker">The Studio</p>
+            <h2 class="section-title" id="aboutTitle">先从宇治说起。</h2>
+          </div>
+          <p class="section-note">四十多年，都在宇治。</p>
+        </div>
+
+        <div class="about-grid">
+          <div class="about-visual-wrap">
+            <figure class="about-visual about-visual--photo" data-reveal>
+              <img class="about-real-photo" src="assets/about.webp" alt="京都动画为宇治市制作的动画短片《うじには物語がある》中的宇治街景" width="920" height="1180" loading="lazy" decoding="async">
+              <span class="about-visual__scrim" aria-hidden="true"></span>
+              <div class="about-visual__label">
+                <strong>京都・宇治 / UJI, KYOTO</strong>
+                <span>うじには物語がある — SHORT ANIME</span>
+              </div>
+              <span class="about-photo-credit">ART / UJI CITY × KYOTO ANIMATION</span>
+              <span class="about-stamp" aria-hidden="true">宇治<br>1981</span>
+              <span class="about-visual__vertical" aria-hidden="true">風、光、宇治。</span>
+            </figure>
+            <div class="about-pull" data-reveal style="--reveal-delay: 90ms">
+              <span class="about-pull__label">EDITOR'S NOTE</span>
+              <p>这里记下的，多是那些容易被忽略的小事。</p>
+            </div>
+          </div>
+
+          <div class="about-copy" data-reveal style="--reveal-delay: 70ms">
+            <p class="about-lede">京都动画创立于 1981 年，1985 年正式设立公司，工作室一直在京都南部的宇治。</p>
+            <p>最初，它替别的公司做动画、上色。作画、背景美术和演出，是一点点攒起来的。</p>
+            <p>后来，镜头开始停在一些很小的地方：一双鞋走过坡道，一只手放下杯子，一个人抬头看云。这些细节不一定推动剧情，却常常留下来。</p>
+            <p>SOS 团在教室里胡闹，轻音部在放学后喝茶，北宇治的合奏从河堤开始，薇尔莉特替人写下说不出口的话。人物之间总隔着一点什么：年龄、误解、沉默。故事要讲的，往往是他们怎么走近。</p>
+            <p class="about-memorial">2019 年，工作室在一场纵火中受到重创。支援和花束从各地寄到京都，作品也被更多人记住。今天的京都动画仍在宇治，继续画那些细小的动作和停顿。</p>
+
+            <div class="facts" aria-label="工作室基本数据">
+              <div class="fact"><strong>1981</strong><span>创业于京都</span></div>
+              <div class="fact"><strong>1985</strong><span>法人设立</span></div>
+              <div class="fact"><strong>UJI</strong><span>京都府宇治市 · 本社</span></div>
+              <div class="fact"><strong>62</strong><span>全作品档案</span></div>
+            </div>
+            <p class="facts-source">成立年份、法人设立与所在地依据 <a href="https://www.kyotoanimation.co.jp/en/company/profile/" target="_blank" rel="noopener noreferrer">京都动画官方公司概要</a>；“62”为本页收录的官方已公开动画数量（截至 2025 年），完整清单仍以京都动画官方作品页为准。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 作品列表 ========== -->
+    <section class="section works" id="works" aria-labelledby="worksTitle">
+      <span class="section-watermark" aria-hidden="true">作品</span>
+      <div class="container">
+        <div class="section-head" data-reveal>
+          <span class="section-index" aria-hidden="true">02</span>
+          <div>
+            <p class="section-kicker">Complete Works Archive</p>
+            <h2 class="section-title" id="worksTitle">作品落在时间里。</h2>
+          </div>
+          <p class="section-note">官方作品页上的 62 部动画。默认按发行年份从新到旧，也可以按评分排序；每页数量在列表底部调整。</p>
+        </div>
+
+        <div class="works-toolbar" id="worksToolbar" data-reveal role="search">
+          <div class="filter-group" role="group" aria-label="按作品类型筛选">
+            <button class="filter-btn is-active" type="button" data-filter="all" aria-pressed="true">全部 <span class="count">62</span></button>
+            <button class="filter-btn" type="button" data-filter="tv" aria-pressed="false">TV <span class="count">32</span></button>
+            <button class="filter-btn" type="button" data-filter="movie" aria-pressed="false">剧场版 <span class="count">24</span></button>
+            <button class="filter-btn" type="button" data-filter="short" aria-pressed="false">短篇 <span class="count">6</span></button>
+          </div>
+          <label class="search-wrap" for="workSearch">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="8.7" cy="8.7" r="5.7"/><path d="m13 13 4.1 4.1" stroke-linecap="round"/></svg>
+            <span class="sr-only">搜索作品、人物或关键词</span>
+            <input id="workSearch" type="search" placeholder="搜索作品、人物、导演或年份…" autocomplete="off" spellcheck="false" aria-controls="worksStage">
+            <span class="search-hint" aria-hidden="true">/</span>
+          </label>
+          <div class="sort-group" role="group" aria-label="作品排序">
+            <span class="sort-label">排序 / SORT</span>
+            <button class="sort-btn is-active" type="button" data-sort="date" aria-pressed="true" title="按发行年份排序，默认新→旧">发行年份</button>
+            <button class="sort-btn" type="button" data-sort="score" aria-pressed="false" title="按评分排序，默认高→低">评分</button>
+            <button class="sort-dir" id="sortDir" type="button" aria-label="当前降序，点击切换为升序" title="切换为升序">
+              <span class="sort-dir__icon" id="sortDirIcon" aria-hidden="true">↓</span>
+              <span id="sortDirLabel">降序</span>
+            </button>
+          </div>
+          <div class="works-count" id="worksCount" role="status" aria-live="polite"><strong>62</strong> 部作品</div>
+        </div>
+
+        <div id="worksStage">
+          <div class="works-grid" id="worksGrid"></div>
+          <div class="empty-state" id="emptyState" hidden>
+            <svg viewBox="0 0 120 100" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+              <rect x="26" y="18" width="68" height="58" rx="3"/>
+              <path d="M60 18v58M26 47h68"/>
+              <path d="M32 68c8-13 14-15 20-7c4-7 10-8 15-1c4-5 8-5 13 0" opacity=".7"/>
+              <circle cx="44" cy="34" r="6" opacity=".7"/>
+              <path d="M111 33v43M96 76h30M101 86h21" opacity=".5"/>
+              <path d="M14 88h91" opacity=".55"/>
+              <path d="M39 88c-2-9-1-17 4-24M42 88c3-8 8-13 14-16" opacity=".62"/>
+            </svg>
+            <h3>这一页，暂时没有找到作品。</h3>
+            <p>试试中文名、日文原名或作品名，也可以清除筛选回到全部作品。</p>
+            <button class="empty-clear" id="emptyClear" type="button">清除筛选与搜索</button>
+          </div>
+          <nav class="works-pagination" id="worksPagination" aria-label="作品分页" hidden>
+            <div class="pagination-meta">
+              <p class="pagination-summary" id="paginationSummary" aria-live="polite"></p>
+              <label class="page-size-control" for="pageSize">
+                <span>每页</span>
+                <span class="page-size-select">
+                  <select id="pageSize" aria-label="每页显示作品数量">
+                    <option value="12">12</option>
+                    <option value="20" selected>20</option>
+                    <option value="40">40</option>
+                  </select>
+                  <svg viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="m1 1.5 5 5 5-5"/></svg>
+                </span>
+                <span>部</span>
+              </label>
+            </div>
+            <div class="pagination-controls" id="paginationControls">
+              <button class="page-arrow" id="pagePrev" type="button" aria-label="上一页">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M17 10H4M9 5l-5 5 5 5"/></svg>
+              </button>
+              <div class="page-numbers" id="pageNumbers"></div>
+              <button class="page-arrow" id="pageNext" type="button" aria-label="下一页">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3 10h13M11 5l5 5-5 5"/></svg>
+              </button>
+            </div>
+          </nav>
+        </div>
+
+        <p class="works-note">评分来自 <strong>Bangumi</strong>，保留一位小数，统计截至 2026 年 10 月，仅供社区参考。作品清单以京都动画官方作品页为准；2026 年后的新作请查阅 <a href="https://www.kyotoanimation.co.jp/works/" target="_blank" rel="noopener noreferrer">官方页面</a>。海报与人物画像版权归各权利人所有。</p>
+      </div>
+    </section>
+
+    <!-- ========== 系列与观看顺序 ========== -->
+  <section class="section series" id="series" aria-labelledby="seriesTitle">
+    <span class="section-watermark" aria-hidden="true">系</span>
+    <div class="container">
+      <div class="section-head" data-reveal>
+        <span class="section-index" aria-hidden="true">03</span>
+        <div>
+          <p class="section-kicker">Series &amp; Watch Order</p>
+          <h2 class="section-title" id="seriesTitle">一帧一帧亮起来。</h2>
+        </div>
+        <p class="section-note"><span id="seriesSeriesCount">14</span> 个系列、<span id="seriesWorkCount">53</span> 部作品。按剧情和发行顺序整理；总集篇、前传与衍生作标为可选。</p>
+      </div>
+
+      <div class="series-layout" data-reveal>
+        <div class="series-index" id="seriesIndex" role="group" aria-label="系列列表"></div>
+        <div class="series-detail" id="seriesDetail" aria-live="polite"></div>
+      </div>
+      <p class="series-note">顺序按剧情连贯性整理，并非官方观看顺序。</p>
+    </div>
+  </section>
+
+  <section class="section characters" id="characters" aria-labelledby="charactersTitle">
+      <span class="section-watermark" aria-hidden="true">人</span>
+      <div class="container">
+        <div class="section-head" data-reveal>
+          <span class="section-index" aria-hidden="true">04</span>
+          <div>
+            <p class="section-kicker">Character Index / 人物图鉴</p>
+            <h2 class="section-title" id="charactersTitle"><span class="nowrap">我们记住的</span><span class="nowrap">那些名字。</span></h2>
+          </div>
+          <p class="section-note">从 62 部作品里收下的 <strong id="characterTotal">115</strong> 位主要人物。可以按作品筛选，或直接搜索名字。</p>
+        </div>
+
+        <div class="atlas-toolbar" data-reveal role="search">
+          <label class="search-wrap atlas-search" for="characterSearch">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="8.7" cy="8.7" r="5.7"/><path d="m13 13 4.1 4.1" stroke-linecap="round"/></svg>
+            <span class="sr-only">搜索人物或作品</span>
+            <input id="characterSearch" type="search" placeholder="搜索人物、作品…" autocomplete="off" spellcheck="false" aria-controls="characterGrid">
+            <span class="search-hint" aria-hidden="true">/</span>
+          </label>
+          <label class="atlas-filter" for="characterWorkFilter">
+            <span>作品</span>
+            <select id="characterWorkFilter" aria-label="按作品筛选角色">
+              <option value="all">全部作品</option>
+            </select>
+          </label>
+          <div class="atlas-count" id="characterCount" role="status" aria-live="polite"><strong>115</strong> 位人物</div>
+        </div>
+
+        <div class="character-grid" id="characterGrid" aria-live="polite"></div>
+
+        <div class="empty-state character-empty" id="characterEmpty" hidden>
+          <h3>没有找到这位角色。</h3>
+          <p>试试其他名字，或把作品筛选切回“全部作品”。</p>
+          <button class="empty-clear" id="characterClear" type="button">清除筛选</button>
+        </div>
+
+        <nav class="works-pagination character-pagination" id="characterPagination" aria-label="角色分页" hidden>
+          <div class="pagination-meta">
+            <p class="pagination-summary" id="characterPaginationSummary" aria-live="polite"></p>
+            <label class="page-size-control" for="characterPageSize">
+              <span>每页</span>
+              <span class="page-size-select">
+                <select id="characterPageSize" aria-label="每页显示角色数量">
+                  <option value="12">12</option>
+                  <option value="24" selected>24</option>
+                  <option value="48">48</option>
+                </select>
+                <svg viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="m1 1.5 5 5 5-5"/></svg>
+              </span>
+              <span>位</span>
+            </label>
+          </div>
+          <div class="pagination-controls">
+            <button class="page-arrow" id="characterPrev" type="button" aria-label="上一页角色">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M17 10H4M9 5l-5 5 5 5"/></svg>
+            </button>
+            <div class="page-numbers" id="characterPageNumbers"></div>
+            <button class="page-arrow" id="characterNext" type="button" aria-label="下一页角色">
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M3 10h13M11 5l5 5-5 5"/></svg>
+            </button>
+          </div>
+        </nav>
+
+        <p class="characters-note">人物范围为 Bangumi 标注的“主角”，同一角色跨季、剧场版重复出现时只计一次。画像来自 AniList / Bangumi，资料参考 Bangumi，版权归原权利人。</p>
+      </div>
+    </section>
+
+    <!-- ========== 年表 ========== -->
+    <section class="section timeline" id="timeline" aria-labelledby="timelineTitle">
+      <span class="section-watermark" aria-hidden="true">年表</span>
+      <div class="container">
+        <div class="section-head" data-reveal>
+          <span class="section-index" aria-hidden="true">05</span>
+          <div>
+            <p class="section-kicker">Studio Timeline</p>
+            <h2 class="section-title" id="timelineTitle">时间从画里走过。</h2>
+          </div>
+          <p class="section-note">不是完整年谱，只是一些值得记住的节点。</p>
+        </div>
+
+        <div class="timeline-shell" data-reveal>
+          <div class="timeline-hint" aria-hidden="true">SCROLL HORIZONTALLY / 横向浏览</div>
+          <div class="timeline-scroll" id="timelineScroll" tabindex="0" aria-label="京都动画代表作品年表，可横向滚动浏览">
+            <div class="timeline-track" id="timelineTrack"></div>
+          </div>
+          <p class="timeline-footnote">年表条目为本站按公开资料整理的代表性节点；作品播出与上映年份以日本首播／首映为准。</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ========== 页脚 ========== -->
+  <footer class="site-footer" id="footer">
+    <div class="container footer-inner">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a class="brand" href="#top" aria-label="返回页面顶部">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.05">
+                <circle cx="24" cy="24" r="20.5" opacity=".36"/>
+                <path d="M24 5.5C30 12.2 30 19 24 24C18 19 18 12.2 24 5.5Z"/>
+                <path d="M42.5 24C35.8 30 29 30 24 24C29 18 35.8 18 42.5 24Z"/>
+                <path d="M24 42.5C18 35.8 18 29 24 24C30 29 30 35.8 24 42.5Z"/>
+                <path d="M5.5 24C12.2 18 19 18 24 24C19 30 12.2 30 5.5 24Z"/>
+                <circle cx="24" cy="24" r="2.1" fill="currentColor" stroke="none"/>
+              </svg>
+            </span>
+            <span class="brand-word">
+              <span class="brand-jp">京都アニメーション</span>
+              <span class="brand-en">KYOTO ANIMATION</span>
+            </span>
+          </a>
+          <p class="footer-tagline">在光落下的地方，描摹人心。</p>
+          <p class="footer-disclaimer"><strong>本站为非官方网站，仅用于学习与作品展示。</strong>页面为粉丝概念设计，与京都动画官方无隶属、合作或授权关系。</p>
+        </div>
+
+        <div class="footer-col">
+          <p class="footer-heading">Explore / 探索</p>
+          <nav class="footer-nav" aria-label="页脚导航">
+            <a href="#works"><span>01</span>作品</a>
+            <a href="#series"><span>02</span>系列</a>
+            <a href="#characters"><span>03</span>人物</a>
+            <a href="#timeline"><span>04</span>年表</a>
+            <a href="#about"><span>05</span>关于</a>
+          </nav>
+        </div>
+
+        <div class="footer-sources-col">
+          <div class="footer-col">
+            <p class="footer-heading">Sources / 资料</p>
+            <div class="footer-sources">
+              <a href="https://www.kyotoanimation.co.jp/works/" target="_blank" rel="noopener noreferrer">京都动画 — 官方作品页 ↗</a>
+              <a href="https://www.kyotoanimation.co.jp/en/company/profile/" target="_blank" rel="noopener noreferrer">Kyoto Animation — Corporate Profile ↗</a>
+              <a href="https://bgm.tv/" target="_blank" rel="noopener noreferrer">Bangumi 番组计划 — 作品资料与参考评分 ↗</a>
+            </div>
+            <p class="footer-source-note">作品清单、公开年份与制作人员依据京都动画官方作品页整理；海报、角色资料与评分参考 Bangumi 番组计划。评分统计口径截至 2026 年 10 月，为社区参考值，非官方或实时数据。若有疏漏欢迎指正。</p>
+          </div>
+          <div class="footer-col">
+            <p class="footer-heading">Credits / 影像说明</p>
+            <p class="footer-source-note">首屏轮播使用《紫罗兰永恒花园》官方场景壁纸（来自 <a href="https://violet-evergarden.jp/special/virtualBg/" target="_blank" rel="noopener noreferrer">作品官网</a>），版权归京都动画所有；关于区《うじには物語がある》动画视觉图（宇治市 × 京都动画，经 <a href="https://anilist.co/anime/175783/" target="_blank" rel="noopener noreferrer">AniList 公开资料</a>引用），版权归各权利人所有。作品海报来自各作品官方页面 / Bangumi，角色画像来自 AniList / Bangumi，版权归京都动画及各权利人所有。</p>
+            <p class="footer-image-note">本页不使用自行绘制或 AI 生成的角色图、海报或风景插画；所有图片已内嵌，离线打开也可正常显示。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>© 2026 京都动画非官方概念页 · 本页仅用于学习与作品展示。Kyoto Animation and all related titles, characters, and marks are trademarks of their respective owners. 非官方粉丝作品，无商业用途。</p>
+        <button class="to-top" id="toTop" type="button" aria-label="返回页面顶部">
+          BACK TO TOP
+          <span class="to-top__circle" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.35"><path d="M10 16V4M5 9l5-5 5 5"/></svg>
+          </span>
+        </button>
+      </div>
+    </div>
+    <span class="footer-watermark" aria-hidden="true">京都、宇治。</span>
+  </footer>
+
+  <!-- ========== 作品详情弹窗 ========== -->
+  <div class="work-modal" id="workModal" hidden>
+    <div class="modal__scrim" data-close-modal></div>
+    <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDesc" tabindex="-1">
+      <button class="modal-close" id="modalClose" type="button" aria-label="关闭作品详情">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.45" aria-hidden="true"><path d="m4 4 12 12M16 4 4 16" stroke-linecap="round"/></svg>
+      </button>
+      <div class="modal__scroll" id="modalScroll"></div>
+    </div>
+  </div>
+
+  <div class="character-modal" id="characterModal" hidden>
+    <div class="modal__scrim" data-close-character></div>
+    <div class="character-modal__panel" role="dialog" aria-modal="true" aria-labelledby="characterModalName" aria-describedby="characterModalDesc" tabindex="-1">
+      <button class="modal-close" id="characterModalClose" type="button" aria-label="关闭角色介绍">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.45" aria-hidden="true"><path d="m4 4 12 12M16 4 4 16" stroke-linecap="round"/></svg>
+      </button>
+      <div class="character-modal__portrait" data-art-frame>
+        <img id="characterModalImage" alt="" width="500" height="700" decoding="async" hidden>
+        <span class="character-modal__fallback" id="characterModalFallback" aria-hidden="true">京</span>
+      </div>
+      <div class="character-modal__body">
+        <p class="character-modal__eyebrow">CHARACTER / 人物</p>
+        <h2 class="character-modal__title" id="characterModalName"></h2>
+        <p class="character-modal__jp" id="characterModalJp"></p>
+        <div class="character-modal__works" id="characterModalWorks" aria-label="登场作品"></div>
+        <p class="character-modal__desc" id="characterModalDesc"></p>
+        <div class="character-modal__foot">
+          <a id="characterModalSource" href="https://bgm.tv/" target="_blank" rel="noopener noreferrer">Bangumi 角色资料 ↗</a>
+          <button class="character-quote-button" id="characterQuoteButton" type="button">制作台词卡</button>
+          <button class="character-share-button" id="characterShareButton" type="button">复制角色链接</button>
+          <span>角色画像：AniList / Bangumi · 版权归原权利人</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="quote-modal" id="quoteModal" hidden>
+    <div class="modal__scrim" data-close-quote></div>
+    <div class="quote-modal__panel" role="dialog" aria-modal="true" aria-labelledby="quoteName" tabindex="-1">
+      <button class="modal-close" id="quoteModalClose" type="button" aria-label="关闭台词卡">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.45" aria-hidden="true"><path d="m4 4 12 12M16 4 4 16" stroke-linecap="round"/></svg>
+      </button>
+      <div class="quote-modal__layout">
+        <div class="quote-preview-wrap">
+          <canvas id="quoteCanvas" width="1080" height="1350" aria-label="台词卡预览"></canvas>
+        </div>
+        <div class="quote-editor">
+          <p class="quote-kicker">QUOTE CARD / 台词卡</p>
+          <h2 class="quote-title" id="quoteName"></h2>
+          <label class="quote-label" for="quoteInput">台词</label>
+          <textarea id="quoteInput" rows="4" maxlength="90" placeholder="输入一句台词…" spellcheck="false"></textarea>
+          <p class="quote-hint" id="quoteHint">可在上方修改台词，保存为 PNG 分享。</p>
+          <div class="quote-actions">
+            <button class="quote-download" id="quoteDownload" type="button">保存图片</button>
+            <button class="quote-copy" id="quoteCopy" type="button">复制文字</button>
+          </div>
+          <p class="quote-credit">角色画像：AniList / Bangumi · 版权归原权利人</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
