@@ -104,10 +104,10 @@
                 看看作品
                 <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.35" aria-hidden="true"><path d="M3 10h13M11 5l5 5-5 5"/></svg>
               </a>
-              <a class="btn btn--ghost" href="#about">
-                去宇治看看
-                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.35" aria-hidden="true"><path d="M10 3v13M5 11l5 5 5-5"/></svg>
-              </a>
+              <button class="btn btn--ghost" id="randomWork" type="button">
+                随便看看
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 5.5h3.2l8.6 9h3.2M2.5 14.5h3.2l2-2.1M17.5 5.5h-3.2l-2 2.1M14.8 3l2.7 2.5-2.7 2.5M14.8 12l2.7 2.5-2.7 2.5"/></svg>
+              </button>
             </div>
           </div>
 
@@ -213,6 +213,18 @@
             <span class="sr-only">搜索作品、人物或关键词</span>
             <input id="workSearch" type="search" placeholder="搜索作品、人物、导演或年份…" autocomplete="off" spellcheck="false" aria-controls="worksStage">
             <span class="search-hint" aria-hidden="true">/</span>
+          </label>
+          <label class="progress-filter" for="progressFilter">
+            <span>进度</span>
+            <span class="progress-filter__select">
+              <select id="progressFilter" aria-label="按观看进度筛选">
+                <option value="all" selected>全部</option>
+                <option value="want">想看</option>
+                <option value="watching">在看</option>
+                <option value="done">看过</option>
+              </select>
+              <svg viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="m1 1.5 5 5 5-5"/></svg>
+            </span>
           </label>
           <div class="sort-group" role="group" aria-label="作品排序">
             <span class="sort-label">排序 / SORT</span>

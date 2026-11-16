@@ -18,7 +18,38 @@ const $$ = (selector, scope = document) => Array.from(scope.querySelectorAll(sel
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const isReduced = () => reduceMotion.matches;
 const workById = new Map(works.map((work) => [work.id, work]));
-const state = { filter: "all", query: "", sort: "date", direction: "desc", page: 1, pageSize: 20 };
+const state = { filter: "all", progress: "all", query: "", sort: "date", direction: "desc", page: 1, pageSize: 20 };
+
+/* ---------- 观看进度：localStorage 本地保存 ---------- */
+const PROGRESS_KEY = "kyoani-progress";
+const PROGRESS_LABELS = { want: "想看", watching: "在看", done: "看过" };
+const progressStore = (() => {
+  let map = {};
+  try {
+    const raw = window.localStorage.getItem(PROGRESS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        Object.keys(parsed).forEach((id) => {
+          if (PROGRESS_LABELS[parsed[id]] && workById.has(id)) map[id] = parsed[id];
+        });
+      }
+    }
+  } catch { /* 本地存储不可用时静默降级 */ }
+  const save = () => {
+    try { window.localStorage.setItem(PROGRESS_KEY, JSON.stringify(map)); } catch { /* 同上 */ }
+  };
+  return {
+    get: (id) => map[id] || null,
+    toggle: (id, status) => {
+      if (!PROGRESS_LABELS[status]) return;
+      if (map[id] === status) delete map[id];
+      else map[id] = status;
+      save();
+    },
+    clear: (id) => { if (map[id]) { delete map[id]; save(); } }
+  };
+})();
 
 const escapeXML = (value) => String(value ?? "")
   .replaceAll("&", "&amp;")
@@ -59,6 +90,7 @@ const sortDirLabel = $("#sortDirLabel");
 const emptyState = $("#emptyState");
 const worksCount = $("#worksCount");
 const workSearch = $("#workSearch");
+const progressFilter = $("#progressFilter");
 const characterGrid = $("#characterGrid");
 const characterSearch = $("#characterSearch");
 const characterWorkFilter = $("#characterWorkFilter");
@@ -158,8 +190,15 @@ function workMeta(work) {
 /* ---------- 作品列表渲染 ---------- */
 function matchesState(work) {
   if (state.filter !== "all" && work.type !== state.filter) return false;
+  if (state.progress !== "all" && progressStore.get(work.id) !== state.progress) return false;
   if (state.query && !work.searchBlob.includes(state.query)) return false;
   return true;
+}
+
+function progressBadge(work) {
+  const status = progressStore.get(work.id);
+  if (!status) return "";
+  return `<span class="progress-badge progress-badge--${status}" title="我的进度：${PROGRESS_LABELS[status]}"><span class="progress-badge__dot" aria-hidden="true"></span>${PROGRESS_LABELS[status]}</span>`;
 }
 
 function renderWorkCards(list, startIndex = 0) {
@@ -171,6 +210,7 @@ function renderWorkCards(list, startIndex = 0) {
         ${coverFallback(work)}
         <span class="work-card__no" aria-hidden="true">${String(overallIndex).padStart(2, "0")}</span>
         <span class="work-card__type">${escapeXML(work.typeLabel)} · ${work.year}</span>
+        ${progressBadge(work)}
       </div>
       <div class="work-card__body">
         <div class="work-meta"><span>${work.year}</span><span class="sep" aria-hidden="true"></span><span>${escapeXML(work.tags.slice(0, 2).join(" / "))}</span></div>
@@ -351,6 +391,12 @@ pageSizeSelect.addEventListener("change", () => {
   scrollToWorks();
 });
 
+progressFilter?.addEventListener("change", () => {
+  state.progress = PROGRESS_LABELS[progressFilter.value] ? progressFilter.value : "all";
+  state.page = 1;
+  renderWorks();
+});
+
 workSearch.addEventListener("input", (event) => setQuery(event.target.value));
 workSearch.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && workSearch.value) {
@@ -378,9 +424,11 @@ characterSearch.addEventListener("keydown", (event) => {
 
 $("#emptyClear").addEventListener("click", () => {
   state.filter = "all";
+  state.progress = "all";
   state.query = "";
   state.page = 1;
   workSearch.value = "";
+  if (progressFilter) progressFilter.value = "all";
   $$(".filter-btn").forEach((button) => {
     const active = button.dataset.filter === "all";
     button.classList.toggle("is-active", active);
@@ -870,6 +918,19 @@ function relatedWorksMarkup(work) {
   </section>`;
 }
 
+function progressControlMarkup(work) {
+  const current = progressStore.get(work.id);
+  const buttons = Object.entries(PROGRESS_LABELS).map(([status, label]) => {
+    const active = current === status;
+    return `<button class="progress-btn${active ? " is-active" : ""}" type="button" data-progress="${status}" aria-pressed="${active}">${label}</button>`;
+  }).join("");
+  return `<div class="modal-progress" role="group" aria-label="观看进度标记">
+    <span class="modal-progress__label">我的进度</span>
+    <span class="modal-progress__buttons">${buttons}</span>
+    <span class="modal-progress__hint">再点一次可取消 · 仅保存在这台设备上</span>
+  </div>`;
+}
+
 function modalHTML(work) {
   const index = works.indexOf(work) + 1;
   const characterItems = work.characters.map((character) => `<button class="modal-char" type="button" data-character-id="${character.id}" aria-label="查看${escapeXML(character.cn)}的角色介绍">
@@ -898,6 +959,7 @@ function modalHTML(work) {
       <div class="modal-meta">${workMeta(work)}</div>
       <div class="modal-rating">${ratingMarkup(work)}</div>
     </div>
+    ${progressControlMarkup(work)}
     <section class="modal-section">
       <p class="modal-section__eyebrow">Synopsis / 故事</p>
       <p class="modal-synopsis" id="modalDesc">${escapeXML(work.detail)}</p>
@@ -1418,6 +1480,18 @@ workModal.addEventListener("click", (event) => {
     switchWorkModal(relatedButton.dataset.relatedWork);
     return;
   }
+  const progressButton = event.target.closest("[data-progress]");
+  if (progressButton && activeWorkId) {
+    progressStore.toggle(activeWorkId, progressButton.dataset.progress);
+    const current = progressStore.get(activeWorkId);
+    $$("[data-progress]", workModal).forEach((button) => {
+      const active = button.dataset.progress === current;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    renderWorks();
+    return;
+  }
   const characterButton = event.target.closest("[data-character-id]");
   if (characterButton) openCharacterModal(characterButton.dataset.characterId, characterButton);
 });
@@ -1448,6 +1522,16 @@ document.addEventListener("click", (event) => {
   const trigger = event.target.closest("[data-open-work]");
   if (!trigger) return;
   openModal(trigger.dataset.openWork, trigger);
+});
+
+/* ---------- 随机入口：随便看看 ---------- */
+let lastRandomWorkId = null;
+$("#randomWork")?.addEventListener("click", (event) => {
+  const pool = works.length > 1 ? works.filter((work) => work.id !== lastRandomWorkId) : works;
+  if (!pool.length) return;
+  const pick = pool[Math.floor(Math.random() * pool.length)];
+  lastRandomWorkId = pick.id;
+  openModal(pick.id, event.currentTarget);
 });
 
 /* ---------- 移动端菜单 ---------- */
