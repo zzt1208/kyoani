@@ -763,9 +763,31 @@ function workPeriod(work) {
   return formatArchiveDate(work.releaseDate) || String(work.year);
 }
 
+const WORK_TO_SERIES = new Map();
+SERIES.forEach((series) => {
+  series.entries.forEach((entry) => {
+    WORK_TO_SERIES.set(entry.workId, series.id);
+  });
+});
+
+function seriesFor(work) {
+  const seriesId = WORK_TO_SERIES.get(work.id);
+  return SERIES.find((series) => series.id === seriesId) || null;
+}
+
+function seriesWorksFor(work) {
+  const series = seriesFor(work);
+  if (!series) return [];
+  return series.entries
+    .filter((entry) => entry.workId !== work.id)
+    .map((entry) => ({ work: works.find((item) => item.id === entry.workId), note: entry.note || (entry.optional ? "可选" : "") }))
+    .filter((entry) => entry.work);
+}
+
 function relatedWorksFor(work) {
+  const sameSeriesIds = new Set(seriesWorksFor(work).map((entry) => entry.work.id));
   return works
-    .filter((item) => item.id !== work.id && (item.director === work.director || item.writer === work.writer))
+    .filter((item) => item.id !== work.id && !sameSeriesIds.has(item.id) && (item.director === work.director || item.writer === work.writer))
     .sort((a, b) => {
       const ad = a.director === work.director ? 1 : 0;
       const bd = b.director === work.director ? 1 : 0;
@@ -822,12 +844,26 @@ function workArchiveMarkup(work) {
   </section>`;
 }
 
+function sameSeriesMarkup(work) {
+  const series = seriesFor(work);
+  if (!series) return "";
+  const siblings = seriesWorksFor(work);
+  if (!siblings.length) return "";
+  return `<section class="modal-section">
+    <p class="modal-section__eyebrow">Series / 同系列作品</p>
+    <p class="related-note">「${escapeXML(series.title)}」系列的其他作品，点击可直接切换。</p>
+    <div class="related-works">
+      ${siblings.map(({ work: item, note }) => `<button class="related-work" type="button" data-related-work="${escapeXML(item.id)}"><span>《${escapeXML(item.title)}》</span><small>${escapeXML(item.year)}${note ? ` · ${escapeXML(note)}` : ""}</small></button>`).join("")}
+    </div>
+  </section>`;
+}
+
 function relatedWorksMarkup(work) {
   const related = relatedWorksFor(work);
   if (!related.length) return "";
   return `<section class="modal-section">
     <p class="modal-section__eyebrow">Related / 相关作品</p>
-    <p class="related-note">同监督或同编剧的作品，点击可直接切换。</p>
+    <p class="related-note">同监督或同编剧的其他作品，点击可直接切换。</p>
     <div class="related-works">
       ${related.map((item) => `<button class="related-work" type="button" data-related-work="${escapeXML(item.id)}"><span>《${escapeXML(item.title)}》</span><small>${escapeXML(item.year)} · ${item.director === work.director ? "同监督" : "同编剧"}</small></button>`).join("")}
     </div>
@@ -874,6 +910,8 @@ function modalHTML(work) {
       <p class="modal-section__eyebrow">Characters / 主要人物</p>
       <div class="modal-characters">${characterItems}</div>
     </section>
+
+    ${sameSeriesMarkup(work)}
 
     ${relatedWorksMarkup(work)}
 
